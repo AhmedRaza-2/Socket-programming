@@ -101,7 +101,7 @@ void handleClient(SOCKET clientSocket) {
             "1. Car Management\n"
             "2. Employee Management\n"
             "3. Customer Management\n"
-            "4. Exit\n"
+            "5. Exit\n"
             "Enter your choice: ";
         sendMsg(clientSocket, menu);
         string recvData = recvMsg(clientSocket);
@@ -109,225 +109,228 @@ void handleClient(SOCKET clientSocket) {
         choice = stoi(recvData);
 
         if (choice == 1) {
-            string carMenu =
-                "\nCar Menu:\n1. SUV\n2. Sedan\n3. Hatchback\n4. Back\n"
-                "Enter your choice: ";
-            sendMsg(clientSocket, carMenu);
-            int carChoice = stoi(recvMsg(clientSocket));
-
-            switch (carChoice) {
-                case 1: {
-                    SUV suv;
-                    
-                    string suvMenu =
-                        "\nSUV Management Menu:\n"
-                        "1. Add New SUV\n"
-                        "2. View All SUVs\n"
-                        "3. Search SUV by ID\n"
-                        "4. Back to Car Menu\n"
-                        "Enter your choice: ";
-                    sendMsg(clientSocket, suvMenu);
-                    int suvChoice = stoi(recvMsg(clientSocket));
-
-                    switch (suvChoice) {
-                        case 1: {
-                            string prompts[] = {
-                                "Enter Car ID: ", "Enter Make: ", "Enter Model: ", "Enter Price: ",
-                                "Enter Seating Capacity: ", "Enter Ground Clearance: ",
-                                "Is Car Available (Yes/No): ", "Enter Offroad Capability: ", "Enter Towing Capacity: "
-                            };
-                            string inputs[9];
-                            for (int i = 0; i < 9; ++i) {
-                                sendMsg(clientSocket, prompts[i]);
-                                inputs[i] = recvMsg(clientSocket);
-                                if (inputs[i].empty()) {
-                                    sendMsg(clientSocket, "Error: Missing input. Operation cancelled.\n");
-                                    return;
+            while (true) {
+                string carMenu =
+                    "\nCar Menu:\n1. SUV\n2. Sedan\n3. Hatchback\n5. Back\n"
+                    "Enter your choice: ";
+                sendMsg(clientSocket, carMenu);
+                int carChoice = stoi(recvMsg(clientSocket));
+                if (carChoice == 5) break;
+        
+                switch (carChoice) {
+                    case 1: {
+                        SUV suv;
+                        while (true) {
+                            string suvMenu =
+                                "\nSUV Management Menu:\n"
+                                "1. Add New SUV\n"
+                                "2. View All SUVs\n"
+                                "3. Search SUV by ID\n"
+                                "4. Back to Car Menu\n"
+                                "Enter your choice: ";
+                            sendMsg(clientSocket, suvMenu);
+                            int suvChoice = stoi(recvMsg(clientSocket));
+                            if (suvChoice == 5) break;
+        
+                            switch (suvChoice) {
+                                case 1: {
+                                    string prompts[] = {
+                                        "Enter Car ID: ", "Enter Make: ", "Enter Model: ", "Enter Price: ",
+                                        "Enter Seating Capacity: ", "Enter Ground Clearance: ",
+                                        "Is Car Available (Yes/No): ", "Enter Offroad Capability: ", "Enter Towing Capacity: "
+                                    };
+                                    string inputs[9];
+                                    for (int i = 0; i < 9; ++i) {
+                                        sendMsg(clientSocket, prompts[i]);
+                                        inputs[i] = recvMsg(clientSocket);
+                                        if (inputs[i].empty()) {
+                                            sendMsg(clientSocket, "Error: Missing input. Operation cancelled.\n");
+                                            return;
+                                        }
+                                    }
+        
+                                    try {
+                                        SUV newSUV(
+                                            stoi(inputs[0]), inputs[1], inputs[2], stof(inputs[3]),
+                                            stoi(inputs[4]), stoi(inputs[5]), inputs[6],
+                                            stoi(inputs[7]), stoi(inputs[8])
+                                        );
+                                        newSUV.store_to_file();
+                                        sendMsg(clientSocket, "SUV added successfully.\n");
+                                    } catch (const exception& e) {
+                                        cerr << "Error: " << e.what() << endl;
+                                        sendMsg(clientSocket, "Error: Invalid or incomplete input. Please try again.\n");
+                                    }
+                                    break;
                                 }
+                                case 2: {
+                                    ostringstream oss;
+                                    streambuf* oldCout = cout.rdbuf(oss.rdbuf());
+                                    suv.view_from_file();
+                                    cout.rdbuf(oldCout);
+                                    sendMsg(clientSocket, oss.str());
+                                    break;
+                                }
+                                case 3: {
+                                    sendMsg(clientSocket, "Enter the ID to search: ");
+                                    int id = stoi(recvMsg(clientSocket));
+                                    istringstream inputStream(to_string(id));
+                                    ostringstream outputStream;
+                                    streambuf* oldCin = cin.rdbuf();
+                                    streambuf* oldCout = cout.rdbuf();
+                                    cin.rdbuf(inputStream.rdbuf());
+                                    cout.rdbuf(outputStream.rdbuf());
+                                    suv.search();
+                                    cin.rdbuf(oldCin);
+                                    cout.rdbuf(oldCout);
+                                    sendMsg(clientSocket, outputStream.str());
+                                    break;
+                                }
+                                default:
+                                    sendMsg(clientSocket, "Invalid SUV menu option.\n");
                             }
-                        
-                            try {
-                                int car_id = stoi(inputs[0]);
-                                string make = inputs[1];
-                                string model = inputs[2];
-                                float price = stof(inputs[3]);
-                                int seating = stoi(inputs[4]);
-                                int clearance = stoi(inputs[5]);
-                                string availability = inputs[6];
-                                int offroad = stoi(inputs[7]);
-                                int towing = stoi(inputs[8]);
-                        
-                                SUV newSUV(car_id, make, model, price, seating, clearance, availability, offroad, towing);
-                                newSUV.store_to_file();
-                                sendMsg(clientSocket, "SUV added successfully.\n");
-                            } catch (const exception& e) {
-                                cerr << "Error: " << e.what() << endl;
-                                sendMsg(clientSocket, "Error: Invalid or incomplete input. Please try again.\n");
-                            }
-                            break;
                         }
-                        
-                        case 2: {
-                            ostringstream oss;
-                            streambuf* oldCout = cout.rdbuf(oss.rdbuf());
-                            suv.view_from_file();
-                            cout.rdbuf(oldCout);
-                            sendMsg(clientSocket, oss.str());
-                            break;
-                        }
-                        case 3: {
-                            sendMsg(clientSocket, "Enter the ID to search: ");
-                            int id = stoi(recvMsg(clientSocket));
-                            istringstream inputStream(to_string(id));
-                            ostringstream outputStream;
-                            streambuf* oldCin = cin.rdbuf();
-                            streambuf* oldCout = cout.rdbuf();
-                            cin.rdbuf(inputStream.rdbuf());
-                            cout.rdbuf(outputStream.rdbuf());
-                            suv.search();
-                            cin.rdbuf(oldCin);
-                            cout.rdbuf(oldCout);
-                            sendMsg(clientSocket, outputStream.str());
-                            break;
-                        }
-                        case 4: break;
-                        default:
-                            sendMsg(clientSocket, "Invalid SUV menu option.\n");
+                        break;
                     }
-                    break;
-                }
-                case 2: {
-                    // Sedan
-                    Sedan sedan;
-                    string sedanMenu =
-                        "\nSedan Management Menu:\n"
-                        "1. Add New Sedan\n"
-                        "2. View All Sedans\n"
-                        "3. Search Sedan by ID\n"
-                        "4. Back to Car Menu\n"
-                        "Enter your choice: ";
-                    sendMsg(clientSocket, sedanMenu);
-                    int sedanChoice = stoi(recvMsg(clientSocket));
-
-                    switch (sedanChoice) {
-                        case 1: {
-                            string prompts[] = {
-                                "Enter Car ID: ", "Enter Make: ", "Enter Model: ", "Enter Price: ",
-                                "Enter Seating Capacity: ", "Enter Ground Clearance: ",
-                                "Is Car Available (Yes/No): ", "Enter Fuel Efficiency: ", "Enter Trunk Capacity: "
-                            };
-                            string inputs[9];
-                            for (int i = 0; i < 9; ++i) {
-                                sendMsg(clientSocket, prompts[i]);
-                                inputs[i] = recvMsg(clientSocket);
+        
+                    case 2: {
+                        Sedan sedan;
+                        while (true) {
+                            string sedanMenu =
+                                "\nSedan Management Menu:\n"
+                                "1. Add New Sedan\n"
+                                "2. View All Sedans\n"
+                                "3. Search Sedan by ID\n"
+                                "5. Back to Car Menu\n"
+                                "Enter your choice: ";
+                            sendMsg(clientSocket, sedanMenu);
+                            int sedanChoice = stoi(recvMsg(clientSocket));
+                            if (sedanChoice == 4) break;
+        
+                            switch (sedanChoice) {
+                                case 1: {
+                                    string prompts[] = {
+                                        "Enter Car ID: ", "Enter Make: ", "Enter Model: ", "Enter Price: ",
+                                        "Enter Seating Capacity: ", "Enter Ground Clearance: ",
+                                        "Is Car Available (Yes/No): ", "Enter Fuel Efficiency: ", "Enter Trunk Capacity: "
+                                    };
+                                    string inputs[9];
+                                    for (int i = 0; i < 9; ++i) {
+                                        sendMsg(clientSocket, prompts[i]);
+                                        inputs[i] = recvMsg(clientSocket);
+                                    }
+        
+                                    Sedan newSedan(
+                                        stoi(inputs[0]), inputs[1], inputs[2], stof(inputs[3]),
+                                        stoi(inputs[4]), stoi(inputs[5]), inputs[6],
+                                        stof(inputs[7]), stof(inputs[8])
+                                    );
+                                    newSedan.store_to_file();
+                                    sendMsg(clientSocket, "Sedan added successfully.\n");
+                                    break;
+                                }
+                                case 2: {
+                                    ostringstream oss;
+                                    streambuf* oldCout = cout.rdbuf(oss.rdbuf());
+                                    sedan.view_from_file();
+                                    cout.rdbuf(oldCout);
+                                    sendMsg(clientSocket, oss.str());
+                                    break;
+                                }
+                                case 3: {
+                                    sendMsg(clientSocket, "Enter the ID to search: ");
+                                    int id = stoi(recvMsg(clientSocket));
+                                    istringstream inputStream(to_string(id));
+                                    ostringstream outputStream;
+                                    streambuf* oldCin = cin.rdbuf();
+                                    streambuf* oldCout = cout.rdbuf();
+                                    cin.rdbuf(inputStream.rdbuf());
+                                    cout.rdbuf(outputStream.rdbuf());
+                                    sedan.search();
+                                    cin.rdbuf(oldCin);
+                                    cout.rdbuf(oldCout);
+                                    sendMsg(clientSocket, outputStream.str());
+                                    break;
+                                }
+                                default:
+                                    sendMsg(clientSocket, "Invalid Sedan menu option.\n");
                             }
-
-                            Sedan newSedan(
-                                stoi(inputs[0]), inputs[1], inputs[2], stof(inputs[3]),
-                                stoi(inputs[4]), stoi(inputs[5]), inputs[6],
-                                stof(inputs[7]), stof(inputs[8])
-                            );
-                            newSedan.store_to_file();
-                            sendMsg(clientSocket, "Sedan added successfully.\n");
-                            break;
                         }
-                        case 2: {
-                            ostringstream oss;
-                            streambuf* oldCout = cout.rdbuf(oss.rdbuf());
-                            sedan.view_from_file();
-                            cout.rdbuf(oldCout);
-                            sendMsg(clientSocket, oss.str());
-                            break;
-                        }
-                        case 3: {
-                            sendMsg(clientSocket, "Enter the ID to search: ");
-                            int id = stoi(recvMsg(clientSocket));
-                            istringstream inputStream(to_string(id));
-                            ostringstream outputStream;
-                            streambuf* oldCin = cin.rdbuf();
-                            streambuf* oldCout = cout.rdbuf();
-                            cin.rdbuf(inputStream.rdbuf());
-                            cout.rdbuf(outputStream.rdbuf());
-                            sedan.search();
-                            cin.rdbuf(oldCin);
-                            cout.rdbuf(oldCout);
-                            sendMsg(clientSocket, outputStream.str());
-                            break;
-                        }
-                        case 4: break;
-                        default:
-                            sendMsg(clientSocket, "Invalid Sedan menu option.\n");
+                        break;
                     }
-                    break;
-                }
-                case 3: {
-                    Hatchback hatchback;
-                    string hatchMenu =
-                        "\nHatchback Management Menu:\n"
-                        "1. Add New Hatchback\n"
-                        "2. View All Hatchbacks\n"
-                        "3. Search Hatchback by ID\n"
-                        "4. Back to Car Menu\n"
-                        "Enter your choice: ";
-                    sendMsg(clientSocket, hatchMenu);
-                    int hatchChoice = stoi(recvMsg(clientSocket));
-
-                    switch (hatchChoice) {
-                        case 1: {
-                            string prompts[] = {
-                                "Enter Car ID: ", "Enter Make: ", "Enter Model: ", "Enter Price: ",
-                                "Enter Seating Capacity: ", "Enter Ground Clearance: ",
-                                "Is Car Available (Yes/No): ", "Enter Cargo Space: ", "Enter Fuel Type: "
-                            };
-                            string inputs[9];
-                            for (int i = 0; i < 9; ++i) {
-                                sendMsg(clientSocket, prompts[i]);
-                                inputs[i] = recvMsg(clientSocket);
+        
+                    case 3: {
+                        Hatchback hatchback;
+                        while (true) {
+                            string hatchMenu =
+                                "\nHatchback Management Menu:\n"
+                                "1. Add New Hatchback\n"
+                                "2. View All Hatchbacks\n"
+                                "3. Search Hatchback by ID\n"
+                                "5. Back to Car Menu\n"
+                                "Enter your choice: ";
+                            sendMsg(clientSocket, hatchMenu);
+                            int hatchChoice = stoi(recvMsg(clientSocket));
+                            if (hatchChoice == 5) break;
+        
+                            switch (hatchChoice) {
+                                case 1: {
+                                    string prompts[] = {
+                                        "Enter Car ID: ", "Enter Make: ", "Enter Model: ", "Enter Price: ",
+                                        "Enter Seating Capacity: ", "Enter Ground Clearance: ",
+                                        "Is Car Available (Yes/No): ", "Enter Cargo Space: ", "Enter Fuel Type: "
+                                    };
+                                    string inputs[9];
+                                    for (int i = 0; i < 9; ++i) {
+                                        sendMsg(clientSocket, prompts[i]);
+                                        inputs[i] = recvMsg(clientSocket);
+                                    }
+        
+                                    Hatchback newHatchback(
+                                        stoi(inputs[0]), inputs[1], inputs[2], stof(inputs[3]),
+                                        stoi(inputs[4]), stoi(inputs[5]), inputs[6],
+                                        stoi(inputs[7]), inputs[8]
+                                    );
+                                    newHatchback.store_to_file();
+                                    sendMsg(clientSocket, "Hatchback added successfully.\n");
+                                    break;
+                                }
+                                case 2: {
+                                    ostringstream oss;
+                                    streambuf* oldCout = cout.rdbuf(oss.rdbuf());
+                                    hatchback.view_from_file();
+                                    cout.rdbuf(oldCout);
+                                    sendMsg(clientSocket, oss.str());
+                                    break;
+                                }
+                                case 3: {
+                                    sendMsg(clientSocket, "Enter the ID to search: ");
+                                    int id = stoi(recvMsg(clientSocket));
+                                    istringstream inputStream(to_string(id));
+                                    ostringstream outputStream;
+                                    streambuf* oldCin = cin.rdbuf();
+                                    streambuf* oldCout = cout.rdbuf();
+                                    cin.rdbuf(inputStream.rdbuf());
+                                    cout.rdbuf(outputStream.rdbuf());
+                                    hatchback.search();
+                                    cin.rdbuf(oldCin);
+                                    cout.rdbuf(oldCout);
+                                    sendMsg(clientSocket, outputStream.str());
+                                    break;
+                                }
+                                default:
+                                    sendMsg(clientSocket, "Invalid Hatchback menu option.\n");
                             }
-
-                            Hatchback newHatchback(
-                                stoi(inputs[0]), inputs[1], inputs[2], stof(inputs[3]),
-                                stoi(inputs[4]), stoi(inputs[5]), inputs[6],
-                                stoi(inputs[7]), inputs[8]
-                            );
-                            newHatchback.store_to_file();
-                            sendMsg(clientSocket, "Hatchback added successfully.\n");
-                            break;
                         }
-                        case 2: {
-                            ostringstream oss;
-                            streambuf* oldCout = cout.rdbuf(oss.rdbuf());
-                            hatchback.view_from_file();
-                            cout.rdbuf(oldCout);
-                            sendMsg(clientSocket, oss.str());
-                            break;
-                        }
-                        case 3: {
-                            sendMsg(clientSocket, "Enter the ID to search: ");
-                            int id = stoi(recvMsg(clientSocket));
-                            istringstream inputStream(to_string(id));
-                            ostringstream outputStream;
-                            streambuf* oldCin = cin.rdbuf();
-                            streambuf* oldCout = cout.rdbuf();
-                            cin.rdbuf(inputStream.rdbuf());
-                            cout.rdbuf(outputStream.rdbuf());
-                            hatchback.search();
-                            cin.rdbuf(oldCin);
-                            cout.rdbuf(oldCout);
-                            sendMsg(clientSocket, outputStream.str());
-                            break;
-                        }
-                        case 4: break;
-                        default:
-                            sendMsg(clientSocket, "Invalid Hatchback menu option.\n");
+                        break;
                     }
-                    break;
+        
+                    default:
+                        sendMsg(clientSocket, "Invalid Car menu option.\n");
                 }
-                case 4: break;
-                default:
-                    sendMsg(clientSocket, "Invalid Car menu option.\n");
             }
-        } else if (choice == 2) {
+        }
+        else if (choice == 2) {
             Employee employee;
             string empMenu =
                 "\nEmployee Management Menu:\n"
