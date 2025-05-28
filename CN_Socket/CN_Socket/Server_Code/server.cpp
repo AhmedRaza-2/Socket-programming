@@ -107,7 +107,75 @@ void handleClient(SOCKET clientSocket) {
         string recvData = recvMsg(clientSocket);
         if (recvData.empty()) break;
         choice = stoi(recvData);
+        if (choice == 5) {#include <fstream>
+#include <ctime>
 
+ofstream logFile("server.log");
+
+void log(const string& message) {
+    time_t now = time(0);
+    tm* ltm = localtime(&now);
+    char timestamp[20];
+    sprintf(timestamp, "%04d-%02d-%02d %02d:%02d:%02d", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, ltm->tm_hour, ltm->tm_min, ltm->tm_sec);
+    logFile << timestamp << " - " << message << endl;
+}
+
+// ...
+
+void handleClient(SOCKET clientSocket) {
+    log("Client connected.");
+    // ...
+
+    while (true) {
+        // ...
+
+        switch (choice) {
+            case 1: {
+                // ...
+
+                switch (carChoice) {
+                    case 1: {
+                        // ...
+
+                        switch (suvChoice) {
+                            case 1: {
+                                // ...
+
+                                try {
+                                    SUV newSUV(
+                                        stoi(inputs[0]), inputs[1], inputs[2], stof(inputs[3]),
+                                        stoi(inputs[4]), stoi(inputs[5]), inputs[6],
+                                        stoi(inputs[7]), stoi(inputs[8])
+                                    );
+                                    newSUV.store_to_file();
+                                    log("SUV added successfully.");
+                                    sendMsg(clientSocket, "SUV added successfully.\n");
+                                } catch (const exception& e) {
+                                    log("Error: " + string(e.what()));
+                                    sendMsg(clientSocket, "Error: Invalid or incomplete input. Please try again.\n");
+                                }
+                                break;
+                            }
+                            // ...
+                        }
+                        break;
+                    }
+                    // ...
+                }
+                break;
+            }
+            // ...
+        }
+    }
+
+    log("Client disconnected.");
+    closesocket(clientSocket);
+}
+
+// ...
+            sendMsg(clientSocket, "Exiting...\n");
+            break;
+        }
         if (choice == 1) {
             while (true) {
                 string carMenu =
@@ -126,7 +194,7 @@ void handleClient(SOCKET clientSocket) {
                                 "1. Add New SUV\n"
                                 "2. View All SUVs\n"
                                 "3. Search SUV by ID\n"
-                                "4. Back to Car Menu\n"
+                                "5. Back to Car Menu\n"
                                 "Enter your choice: ";
                             sendMsg(clientSocket, suvMenu);
                             int suvChoice = stoi(recvMsg(clientSocket));
@@ -332,16 +400,18 @@ void handleClient(SOCKET clientSocket) {
         }
         else if (choice == 2) {
             Employee employee;
+            while (true){
+                        
             string empMenu =
                 "\nEmployee Management Menu:\n"
                 "1. Add New Employee\n"
                 "2. View All Employees\n"
                 "3. Search Employee by ID\n"
-                "4. Back to Main Menu\n"
+                "5. Back to Main Menu\n"
                 "Enter your choice: ";
             sendMsg(clientSocket, empMenu);
             int empChoice = stoi(recvMsg(clientSocket));
-
+            if (empChoice == 5) break;
             switch (empChoice) {
                 case 1: {
                     string prompts[] = {
@@ -383,22 +453,26 @@ void handleClient(SOCKET clientSocket) {
                     sendMsg(clientSocket, outputStream.str());
                     break;
                 }
-                case 4: break;
+                
                 default:
                     sendMsg(clientSocket, "Invalid Employee menu option.\n");
             }
-        } else if (choice == 3) {
+        }
+    }
+  else if (choice == 3) {
             Customer customer;
+            while (true) {
+            
             string custMenu =
                 "\nCustomer Management Menu:\n"
                 "1. Add New Customer\n"
                 "2. View All Customers\n"
                 "3. Search Customer by ID\n"
-                "4. Back to Main Menu\n"
+                "5. Back to Main Menu\n"
                 "Enter your choice: ";
             sendMsg(clientSocket, custMenu);
             int custChoice = stoi(recvMsg(clientSocket));
-        
+            if (custChoice == 5) break;
             switch (custChoice) {
                 case 1: {
                     // Collect all 14 parameters from the client
@@ -474,16 +548,12 @@ void handleClient(SOCKET clientSocket) {
                     sendMsg(clientSocket, outputStream.str());
                     break;
                 }
-                case 4: break;
                 default:
                     sendMsg(clientSocket, "Invalid Customer menu option.\n");
             }
         }
-           
- else if (choice == 4) {
-            sendMsg(clientSocket, "Exiting the system. Goodbye!\n");
-            break;
-        } else {
+    }           
+  else {
             sendMsg(clientSocket, "Invalid main menu option.\n");
         }
     }
