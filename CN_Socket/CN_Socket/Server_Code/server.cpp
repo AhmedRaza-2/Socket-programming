@@ -12,21 +12,24 @@
 #include <sstream>
 #include <string>
 #include <iomanip>
-
+#include <thread>
+#include <vector>
 using namespace std;
+
 #pragma comment(lib, "ws2_32.lib")
 void handleClient(SOCKET clientSocket);
 
+vector<thread> clientThreads;
 int main() {
     WSADATA wsa;
     if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) {
-        std::cerr << "Failed to initialize Winsock.\n";
+        cerr << "Failed to initialize Winsock.\n";
         return 1;
     }
 
     SOCKET serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == INVALID_SOCKET) {
-        std::cerr << "Failed to create socket.\n";
+        cerr << "Failed to create socket.\n";
         WSACleanup();
         return 1;
     }
@@ -37,34 +40,42 @@ int main() {
     serverAddr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-        std::cerr << "Bind failed.\n";
+        cerr << "Bind failed.\n";
         closesocket(serverSocket);
         WSACleanup();
         return 1;
     }
 
     if (listen(serverSocket, SOMAXCONN) == SOCKET_ERROR) {
-        std::cerr << "Listen failed.\n";
+        cerr << "Listen failed.\n";
         closesocket(serverSocket);
         WSACleanup();
         return 1;
     }
 
-    std::cout << "Server listening on port 8080...\n";
+    cout << "Server listening on port 8080...\n";
 
-    SOCKET clientSocket = accept(serverSocket, nullptr, nullptr);
-    if (clientSocket == INVALID_SOCKET) {
-        std::cerr << "Accept failed.\n";
-        closesocket(serverSocket);
-        WSACleanup();
-        return 1;
+    while (true) {
+        SOCKET clientSocket = accept(serverSocket, nullptr, nullptr);
+        if (clientSocket == INVALID_SOCKET) {
+            cerr << "Accept failed.\n";
+            continue;
+        }
+
+        cout << "Client connected.\n";
+
+        // Handle each client in a new thread
+        clientThreads.emplace_back(thread([clientSocket]() {
+            handleClient(clientSocket);
+            closesocket(clientSocket);
+        }));
     }
 
-    std::cout << "Client connected.\n";
+    // Cleanup: join all threads and cleanup Winsock (never actually reached unless loop breaks)
+    for (auto& t : clientThreads) {
+        if (t.joinable()) t.join();
+    }
 
-    handleClient(clientSocket);
-
-    closesocket(clientSocket);
     closesocket(serverSocket);
     WSACleanup();
     return 0;
@@ -107,6 +118,7 @@ void handleClient(SOCKET clientSocket) {
             switch (carChoice) {
                 case 1: {
                     SUV suv;
+                    
                     string suvMenu =
                         "\nSUV Management Menu:\n"
                         "1. Add New SUV\n"
@@ -128,17 +140,33 @@ void handleClient(SOCKET clientSocket) {
                             for (int i = 0; i < 9; ++i) {
                                 sendMsg(clientSocket, prompts[i]);
                                 inputs[i] = recvMsg(clientSocket);
+                                if (inputs[i].empty()) {
+                                    sendMsg(clientSocket, "Error: Missing input. Operation cancelled.\n");
+                                    return;
+                                }
                             }
-
-                            SUV newSUV(
-                                stoi(inputs[0]), inputs[1], inputs[2], stof(inputs[3]),
-                                stoi(inputs[4]), stoi(inputs[5]), inputs[6],
-                                stoi(inputs[7]), stoi(inputs[8])
-                            );
-                            newSUV.store_to_file();
-                            sendMsg(clientSocket, "SUV added successfully.\n");
+                        
+                            try {
+                                int car_id = stoi(inputs[0]);
+                                string make = inputs[1];
+                                string model = inputs[2];
+                                float price = stof(inputs[3]);
+                                int seating = stoi(inputs[4]);
+                                int clearance = stoi(inputs[5]);
+                                string availability = inputs[6];
+                                int offroad = stoi(inputs[7]);
+                                int towing = stoi(inputs[8]);
+                        
+                                SUV newSUV(car_id, make, model, price, seating, clearance, availability, offroad, towing);
+                                newSUV.store_to_file();
+                                sendMsg(clientSocket, "SUV added successfully.\n");
+                            } catch (const exception& e) {
+                                cerr << "Error: " << e.what() << endl;
+                                sendMsg(clientSocket, "Error: Invalid or incomplete input. Please try again.\n");
+                            }
                             break;
                         }
+                        
                         case 2: {
                             ostringstream oss;
                             streambuf* oldCout = cout.rdbuf(oss.rdbuf());
