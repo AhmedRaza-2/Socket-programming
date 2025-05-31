@@ -1,3 +1,0 @@
-23	tyr	werw	324	3	54	yes	55	34
-23	toyo	gr	2345	45	345	yes	324	324
-23	toyota	corolla	786666	5	78	yes	67	5
