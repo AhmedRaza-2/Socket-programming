@@ -3,9 +3,9 @@
 #include <winsock2.h>
 #include <string>
 #include <cstring>
+#include "ImageTransfer.h" 
 using namespace std;
 #pragma comment(lib, "ws2_32.lib")
-
 int main() {
     WSADATA wsa;
     WSAStartup(MAKEWORD(2,2), &wsa);
@@ -20,15 +20,35 @@ int main() {
     connect(clientSocket, (sockaddr*)&server, sizeof(server));
 
     char buffer[1024];
+
     while (true) {
         memset(buffer, 0, sizeof(buffer));
-        recv(clientSocket, buffer, sizeof(buffer), 0);
-        std::cout << buffer << std::endl;
+        int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+        if (bytesReceived <= 0) break;
 
-        std::string input;
-        std::getline(std::cin, input);
+        string serverMsg(buffer);
+        cout << serverMsg << endl;
+
+        if (serverMsg.find("Image Upload: Please send the image now") != string::npos) {
+            cout << "Enter full path of image to upload (e.g. D:\\\\img.jpg): ";
+            string imgPath;
+            getline(cin, imgPath);
+
+            if (sendImage(clientSocket, imgPath)) {
+                cout << "✅ Image sent successfully.\n";
+            } else {
+                cout << "❌ Failed to send image.\n";
+            }
+
+            memset(buffer, 0, sizeof(buffer));
+            recv(clientSocket, buffer, sizeof(buffer), 0);
+            cout << buffer << endl;
+            continue;
+        }
+
+        string input;
+        getline(cin, input);
         send(clientSocket, input.c_str(), input.size(), 0);
-
     }
 
     closesocket(clientSocket);

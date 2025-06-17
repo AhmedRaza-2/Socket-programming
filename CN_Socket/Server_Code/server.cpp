@@ -9,6 +9,7 @@
 #include "Employee.h"
 #include "Customer.h"
 #include "Showroom.h"
+#include "ImageTransfer.h"
 #include <sstream>
 #include <string>
 #include <iomanip>
@@ -17,8 +18,11 @@
 using namespace std;
 
 #pragma comment(lib, "ws2_32.lib")
+
 void handleClient(SOCKET clientSocket);
+
 vector<thread> clientThreads;
+
 int main() {
     WSADATA wsa;
     if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) {
@@ -620,6 +624,7 @@ void handleClient(SOCKET clientSocket) {
                 "5. Update Customer\n"
                 "6. Delete Customer\n"
                 "7. Back to Main Menu\n"
+                "8. Image Upload\n"
                 "Enter your choice: ";
             sendMsg(clientSocket, custMenu);
             int custChoice = stoi(recvMsg(clientSocket));
@@ -747,6 +752,21 @@ void handleClient(SOCKET clientSocket) {
                     sendMsg(clientSocket, outputStream.str());
                     break;
                 }
+                case 8: { 
+                    sendMsg(clientSocket, "Image Upload: Please send the image now...");
+                    
+                    string filename = "customer_upload_" + to_string(time(0)) + ".jpg";
+                
+                    if (receiveImage(clientSocket, filename)) {
+                        cout << "[SERVER] Customer image saved as: " << filename << endl;
+                        sendMsg(clientSocket, "✅ Image received and saved as: " + filename + "\n");
+                    } else {
+                        cerr << "[SERVER] Failed to receive customer image." << endl;
+                        sendMsg(clientSocket, "❌ Failed to receive image. Please try again.\n");
+                    }
+                    break;
+                }
+                
                 default:
                     sendMsg(clientSocket, "Invalid Customer menu option.\n");
             }
